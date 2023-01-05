@@ -5,24 +5,15 @@ const mongoose = require("mongoose");
 const createBlog = async (req, res) => {
   try {
     let Blog = req.body;
-
-    if (Object.keys(Blog).length == 0) {
-      return res.status(400).send({
-        status: false,
-        msg: "Invalid request Please provide valid Author  details",
-      });
-    }
-
-    if (!Blog.title)
-      return res.status(400).send({ msg: " title is required " });
-    if (!Blog.body) return res.status(400).send({ msg: "body is required " });
-    if (!Blog.authorId)
-      return res.status(400).send({ msg: " authorId is required " });
-    if (!Blog.category)
-      return res.status(400).send({ msg: " category is require" });
+    if (Object.keys(Blog).length == 0) {return res.status(400).send({status: false,msg: "Invalid valid Author details"})}
+    
+    let {title,body, category, authorId} = Blog;
+    if (!title)return res.status(400).send({ msg: " title is required " });
+    if (!body) return res.status(400).send({ msg: "body is required " });
+    if (!authorId) return res.status(400).send({ msg: " authorId is required " });
+    if (!category) return res.status(400).send({ msg: " category is require" });
 
     let blogCreated = await blogModel.create(Blog);
-
     return res.status(201).send({ status: true, data: blogCreated });
   } catch (error) {
     return res.status(500).send({ msg: error.message });
@@ -32,18 +23,12 @@ const createBlog = async (req, res) => {
 //<----------------This API used for Fetch Blogs of Logged in Author----------->//
 const getBlogsData = async (req, res) => {
   try {
-    let id = req.params.authorId; //
-    if (!id)
-      return res.status(400).send({ status: false, msg: "id is required" });
-
-    let isValid = mongoose.Types.ObjectId.isValid(id);
-    if (!isValid) return res.status(400).send({ msg: "enter valid objectID" });
-
-    let data = await blogModel.find({ _id: id });
-
-    if (Object.keys(data).length == 0) {
-      return res.status(404).send({ status: false, msg: "No data Found" });
-    }
+    let queryParams = req.query;
+    if (!mongoose.isValidObjectId(queryParams.authorId)) return res.status(400).send({ status: false, msg: "id is required" })
+    if (Object.keys(queryParams).length == 0) return res.status(404).send({ status: false, msg: "No data Found" })
+    
+    let data = await blogModel.find({ $and: [{isDeletd:false}, {isPublished:true}, queryParams] });
+    if (data.length ==0) return res.send({status:false})
     return res.status(200).send({ msg: data });
   } catch (error) {
     return res.status(500).send({ msg: error.message });
@@ -54,15 +39,15 @@ const getBlogsData = async (req, res) => {
 
 const updateBlog = async function (req, res) {
   try {
-    let inputId = req.params.blogId;
+   // let inputId = req.params.blogId;
 
     let author = req.body;
-
-    let title = req.body.title;
-    let body = req.body.body;
-    let tags = req.body.tags;
-    let category = req.body.category;
-    let subcategory = req.body.subcategory;
+    let {title, body, tags, subcateegory} =author;
+//     let title = req.body.title;
+//     let body = req.body.body;
+//     let tags = req.body.tags;
+//     let category = req.body.category;
+//     let subcategory = req.body.subcategory;
 
     if (Object.keys(author).length == 0) {
       return res.status(400).send({
@@ -74,7 +59,7 @@ const updateBlog = async function (req, res) {
     let date = Date.now();
 
     let blogs = await blogModel.findOneAndUpdate(
-      { _id: inputId },
+      { _id: req.params.blogId, isDeleted:false },
       {
         $set: {
           title: title,
@@ -103,7 +88,7 @@ const deleteBlog = async function (req, res) {
     let date = Date.now();
 
     let data = await blogModel.findOneAndUpdate(
-      { _id: inputId },
+      { _id: inputId , isDeleted : false},
       { $set: { isDeleted: true, deletedAt: date } },
       { new: true }
     );
@@ -131,6 +116,7 @@ const deleteBlog = async function (req, res) {
 const deleteQueryBlog = async function (req, res) {
   try {
     const result = req.query;
+    if(result.authorId) if(!mongoose.isValidObjectId(result.authorId)) return 
     const deleteBlog = await blogModel.findOneAndUpdate(
       { ...result, isDeleted: false },
       { $set: { isDeleted: true } },
