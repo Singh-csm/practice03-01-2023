@@ -70,6 +70,14 @@ const createAuthor = async function (req, res) {
 
 
 
+const login = async(req, res)=>{
+    let result =req.body;
+    if(Object.keys(result).length == 0) return res.status(400).send({status:false});
+    let {password, email} =result
+    //let email= result.email;
+    //let password =result.password;
+    if(!password) return res.status(400).send({status:falswe,msg: "password is mandatory"})
+    
 
 
 
