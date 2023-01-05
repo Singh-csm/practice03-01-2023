@@ -76,10 +76,19 @@ const login = async(req, res)=>{
     let {password, email} =result
     //let email= result.email;
     //let password =result.password;
-    if(!password) return res.status(400).send({status:falswe,msg: "password is mandatory"})
+    if(!password) return res.status(400).send({status:falswe,msg: "password is mandatory"});
+    if(!email) return res.status(400).send({status:false, msg:"email ius mandatory"});
+    
+    let fAuthor = await authorModel.findOne({email: result.email, password: result.password});
+    if(!fAuthor) return res.status(400).send({status:false, msg:"credentials does not matched"});
+    
+    let payload = {authoreId: fAuthor._id.toString(), emailID: fAuthor.email}
+    let token = jwt.sign(payload, "blogGroup17");
+    res.status(201).send({status:true, data: token});
+    
     
 
 
-
+module.exports.logiun = login;
 module.exports.createAuthor = createAuthor;
 
